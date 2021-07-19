@@ -27,8 +27,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
-	sockaddr "github.com/hashicorp/go-sockaddr"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-sockaddr"
 	"github.com/miekg/dns"
 )
 
@@ -530,13 +530,6 @@ func (m *Memberlist) UpdateNode(timeout time.Duration) error {
 	return nil
 }
 
-// Deprecated: SendTo is deprecated in favor of SendBestEffort, which requires a node to
-// target. If you don't have a node then use SendToAddress.
-func (m *Memberlist) SendTo(to net.Addr, msg []byte) error {
-	a := Address{Addr: to.String(), Name: ""}
-	return m.SendToAddress(a, msg)
-}
-
 func (m *Memberlist) SendToAddress(a Address, msg []byte) error {
 	// Encode as a user message
 	buf := make([]byte, 1, len(msg)+1)
@@ -545,16 +538,6 @@ func (m *Memberlist) SendToAddress(a Address, msg []byte) error {
 
 	// Send the message
 	return m.rawSendMsgPacket(a, nil, buf)
-}
-
-// Deprecated: SendToUDP is deprecated in favor of SendBestEffort.
-func (m *Memberlist) SendToUDP(to *Node, msg []byte) error {
-	return m.SendBestEffort(to, msg)
-}
-
-// Deprecated: SendToTCP is deprecated in favor of SendReliable.
-func (m *Memberlist) SendToTCP(to *Node, msg []byte) error {
-	return m.SendReliable(to, msg)
 }
 
 // SendBestEffort uses the unreliable packet-oriented interface of the transport
@@ -595,6 +578,18 @@ func (m *Memberlist) Members() []*Node {
 	}
 
 	return nodes
+}
+
+// Member returns a member identified by name.
+func (m *Memberlist) Member(name string) *Node {
+	m.nodeLock.RLock()
+	defer m.nodeLock.RUnlock()
+
+	ns := m.nodeMap[name]
+	if ns == nil {
+		return nil
+	}
+	return &ns.Node
 }
 
 // NumMembers returns the number of alive nodes currently known. Between
