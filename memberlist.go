@@ -589,6 +589,7 @@ func (m *Memberlist) Member(name string) *Node {
 	if ns == nil {
 		return nil
 	}
+	ns.Node.State = ns.State
 	return &ns.Node
 }
 
